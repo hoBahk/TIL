@@ -1,4 +1,4 @@
-# SwfiftUI - Property Wrapper
+# SwiftUI - Property Wrapper
 
 ## @State
 
@@ -25,7 +25,6 @@ struct ContentView: View {
     }
 }
 ```
-
 
 ## @Binding
 
