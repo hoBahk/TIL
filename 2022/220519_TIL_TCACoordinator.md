@@ -114,7 +114,7 @@ let coordinatorReducer: Reducer<CoordinatorState, CoordinatorAction, Void> = scr
 
 ### Coordinator View 생성
 
-- TCARouter를 사용하여 routes 배열을 보이지 않는 NavigationLinks와 프레젠테이션 호출이 있는 화면 뷰의 중첩된 목록으로 변환하며, 모두 경로 배열의 변경에 적절하게 반응하는 바인딩으로 구성된다.
+- TCARouter를 사용하여 routes 배열을 보이지 않는 NavigationLinks와 프레젠테이션 호출이 있는 화면 뷰의 중첩된 목록으로 변환하며, 모두 route 배열의 변경에 적절하게 반응하는 바인딩으로 구성된다.
 - TCARouter는 내비게이션 플로우의 모든 화면에 대한 뷰를 만들 수 있는 클로저를 취한다.
 - SwitchStore는 가능한 각 화면에 대해 CaseLet을 사용하여 이를 달성하는 일반적인 방법이다.
 
