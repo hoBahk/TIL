@@ -77,3 +77,97 @@ extension Reducer {
 ```
 
 그래도 여전히 불필요한 스레드 건너뛰기가 생기지 않도록 해주는 UIScheduler는 니즈가 있을것이다.
+
+
+### Async 사용하기
+참고 - [pointfree](https://www.pointfree.co/episodes/ep195-async-composable-architecture-the-problem)
+
+Async를 사용한 통신의 경우
+
+Client를 아래와 같이 작성하고
+
+```swift
+struct FactClient {
+  var fetch: (Int) -> Effect<String, Failure>
+  var fetchAsync: @Sendable (Int) async throws -> String
+
+  struct Failure: Error, Equatable {}
+  
+  static let live = Self(
+  fetch: { number in
+    …
+  },
+  fetchAsync: { number in
+    try await Task.sleep(nanoseconds: NSEC_PER_SEC)
+    let (data, _) = try await URLSession.shared
+      .data(from: URL(string: "http://numbersapi.com/\(number)/trivia")!)
+    return String(decoding: data, as: UTF8.self)
+  }
+)
+}
+```
+
+테스트용
+
+```swift
+extension FactClient {
+  static let unimplemented = Self(
+    fetch: { _ in … },
+    fetchAsync: XCTUnimplemented("\(Self.self).fetchAsync")
+  )
+}
+```
+
+
+
+Reducer에서 이렇게 사용한다.
+
+```swift
+return .task { [count = state.count] in
+  do {
+    return .numberFactResponse(
+      .success(try await environment.fact.fetchAsync(environment.random(0...count)))
+    )
+  } catch {
+    return .numberFactResponse(.failure(FactClient.Failure()))
+  }
+}
+```
+
+async let을 사용하여 여러개의 비동기 로직을 처리할 수 있다.
+
+```swift
+return .task { [count = state.count] in
+  do {
+    async let fact1 = environment.fact.fetchAsync(count)
+    async let fact2 = environment.fact.fetchAsync(count)
+    return try await .numberFactResponse(
+      .success(fact1 + "\n" + fact2 + "!!!")
+    )
+  } catch {
+    return .numberFactResponse(.failure(FactClient.Failure()))
+  }
+}
+```
+
+TaskGroup도 사용 가능하다.
+
+```swift
+return Effect.task { [count = state.count] in
+  do {
+    let facts = try await withThrowingTaskGroup(of: String.self, returning: String.self) { group in
+      for _ in 1...count {
+        group.addTask {
+          try await environment.fact.fetchAsync(count)
+        }
+      }
+      return try await group
+        .reduce(into: []) { $0.append("• " + $1) }
+        .joined(separator: "\n")
+    }
+    return .numberFactResponse(.success(facts))
+  } catch {
+    return .numberFactResponse(.failure(FactClient.Failure()))
+  }
+}
+```
